@@ -8,7 +8,7 @@
     
             <div class="row">
                 <div class="col-lg-12">
-                    <h1 class="page-header">Board</h1>
+                    <h1 class="page-header">board</h1>
                 </div>
                 <!-- /.col-lg-12 -->
             </div>

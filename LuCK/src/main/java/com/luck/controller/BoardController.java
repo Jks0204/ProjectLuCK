@@ -19,7 +19,7 @@ import com.luck.service.BoardService;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j;
-//변경점테스트
+
 @Controller
 @RequestMapping("/board/*")
 @AllArgsConstructor
