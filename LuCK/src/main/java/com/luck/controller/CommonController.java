@@ -13,7 +13,7 @@ import lombok.extern.log4j.Log4j;
 @Log4j
 @RequestMapping("/member/*")
 public class CommonController {
-	//에러페이지
+	//에러페이지.
 	@GetMapping("/accessError")
 	public void accessDenied(Authentication auth, Model model) {
 		log.info("권한없음 : "+auth);
