@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.mapper.BoardMapper">
+   <sql id="criteria">
+  	<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+		<foreach item='type' collection="typeArr">
+			<trim prefix="OR">
+				<choose>
+					<when test="type == 'T'.toString()">
+						title like '%'||#{keyword}||'%'
+					</when>
+					<when test="type == 'C'.toString()">
+						content like '%'||#{keyword}||'%'
+					</when>
+					<when test="type == 'W'.toString()">
+						wname like '%'||#{keyword}||'%'
+					</when>
+				</choose>
+			</trim>
+		</foreach>
+	</trim>
+  </sql>
+ 
+  <select id="getList" resultType="com.luck.domain.BoardDTO">
+    select * from LuCK_board where bno>0 order by bno desc
+  </select>
+    
+  <insert id="insertSelectKey">
+  	<selectKey keyProperty="bno" order="BEFORE" resultType="long">
+  		select seq_board.nextval from dual
+  	</selectKey>
+  	
+  	insert into LuCK_board(bno,title,content,writer,category,updateDate,wname)
+  	values(#{bno},#{title},#{content},#{writer},#{category},null,#{wname})
+  	
+  </insert> 
+  
+  <select id="read" resultType="com.luck.domain.BoardDTO">
+  	select * from LuCK_board where bno=#{bno}
+  </select> 
+  
+  <!-- 정관수 -->
+  <update id="update">
+  	update LuCK_board set title=#{title}, content=#{content}, updateDate=sysdate, category=#{category}
+  	where bno=#{bno}
+  </update>
+  <delete id="delete">
+  	delete LuCK_board where bno=#{bno}
+  </delete>
+  
+  <!-- 카테고리 검색기능 -->
+    <select id="getListWithCategory" resultType="com.luck.domain.BoardDTO">
+  	<![CDATA[
+  	select bno,title,content,writer,regdate,updatedate,replycnt,viewcount,category,wname
+	from(
+	    select /*+INDEX_DESC(LuCK_board luck_board_pk) */
+	        rownum rn,bno,title,content,writer,regdate,updatedate,replycnt,viewcount,category,wname
+	    from LuCK_board
+	    where 
+	]]>    
+	
+	<include refid="criteria"></include>
+	    
+	<![CDATA[    
+	   category=#{category}
+	   and rownum <= #{pageNum}*#{amount} 
+	)
+	where rn > (#{pageNum}-1)*#{amount}
+	]]>
+  </select>
+  
+   <select id="getCategoryCount" resultType="int">
+  	select count(*) from LuCK_board 
+  	where
+  	
+  	<include refid="criteria"></include>
+  	 
+  	 category=#{category}	
+  	 and bno > 0
+  </select>
+  
+  <select id="getSideBar" resultType="com.luck.domain.BoardDTO">
+  		<![CDATA[
+  		select bno,title,content,writer,regdate,updatedate,replycnt,viewcount,category,wname from(
+  			select rownum, bno,title,content,writer,regdate,updatedate,replycnt,viewcount,category,wname
+  			from LuCK_Board where regdate >= sysdate-10 order by viewcount desc) where rownum<=10 
+  		]]>	
+  </select>
+  
+  <!-- 정관수 끝 -->
+  
+  <!-- 민 카테고리 설정 아직 안됨-->	
+  
+  <select id="getListWithPaging" resultType="com.luck.domain.BoardDTO">
+  	<![CDATA[
+  	select bno,title,content,writer,regdate,updatedate,replycnt,viewcount,category,wname
+	from(
+	    select /*+INDEX_DESC(LuCK_board luck_board_pk) */
+	        rownum rn,bno,title,content,writer,regdate,updatedate,replycnt,viewcount,category,wname
+	    from LuCK_board
+	    where 
+	]]>    
+	
+	<include refid="criteria"></include>
+	    
+	<![CDATA[    
+	   rownum <= #{pageNum}*#{amount} 
+	)
+	where rn > (#{pageNum}-1)*#{amount}
+	]]>
+  </select>
+  
+   <select id="getTotalCount" resultType="int">
+  	select count(*) from LuCK_board 
+  	where
+  	
+  	<include refid="criteria"></include>
+  	
+  	 bno > 0
+  </select>
+  <!-- 민 끝-->
+  
+  <update id="updateReplyCnt">
+  	update LuCK_board set replycnt=replycnt+#{amount} where bno=#{bno}
+  </update>
+  
+  <update id="updateViewCount">
+  	update LuCK_board set viewcount=viewcount+1 where bno=#{bno}
+  </update>
+</mapper>

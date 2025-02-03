@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.luck.mapper.AdminMapper">
+ 
+  <select id="getBoard" resultType="com.luck.domain.BoardDTO">
+    <![CDATA[
+	select bno, title, content, writer, regdate, updateDate, wname
+	from (
+	    select bno, title, content, writer, regdate, updateDate, wname, rownum rn
+	    from (
+	        select bno, title, content, writer, regdate, updateDate, wname
+	        from LuCK_board
+	        order by coalesce(updateDate, regdate) desc
+	    )
+	    where rownum <= #{pageNum} * #{amount}
+	)
+	where rn > (#{pageNum} - 1) * #{amount}
+	order by rn
+    ]]>	
+  </select>
+  
+  <select id="getReply" resultType="com.luck.domain.ReplyDTO">
+  	<![CDATA[
+	select rno, bno, reply, replyer, replyDate, updateDate, rname
+	from (
+	    select rno, bno, reply, replyer, replyDate, updateDate, rname, rownum rn
+	    from (
+	        select rno, bno, reply, replyer, replyDate, updateDate, rname
+	        from LuCK_reply
+	        order by coalesce(updateDate, replyDate) desc
+	    )
+	    where rownum <= #{pageNum} * #{amount}
+	)
+	where rn > (#{pageNum} - 1) * #{amount}
+	order by rn
+  	]]>
+  </select>
+  
+  <resultMap type="com.luck.domain.MemberVO" id="memberMap">
+  	<id property="userid" column="userid" />
+    <result property="userpw" column="userpw"/>
+    <result property="name" column="name"/>
+    <result property="enabled" column="enabled"/>
+    <result property="regdate" column="regdate"/>
+    <result property="phone" column="phone"/>
+    <result property="email" column="email"/>
+    <collection property="authList" resultMap="authMap"></collection>  
+  </resultMap>
+  
+  <resultMap type="com.luck.domain.AuthVO" id="authMap">
+  	<result property="userid" column="userid"/>
+    <result property="auth" column="auth"/>
+  </resultMap>
+  
+  
+  <select id="getMember" resultMap="memberMap">
+    <![CDATA[
+	SELECT userid, name, regdate, phone, email, auth
+	FROM (
+	    SELECT userid, name, regdate, phone, email, auth, rownum AS rn
+	    FROM (
+	        SELECT mem.userid, mem.name, mem.regdate, mem.phone, mem.email, auth.auth
+	        FROM luck_member mem
+	        LEFT OUTER JOIN luck_member_auth auth ON mem.userid = auth.userid
+	        WHERE auth.auth NOT IN ('ROLE_ADMIN')
+	        ORDER BY mem.regdate DESC
+	    )
+	    WHERE rownum <= #{pageNum} * #{amount}
+	)
+	WHERE rn > (#{pageNum} - 1) * #{amount}
+	ORDER BY rn
+    ]]>	
+    
+  </select>
+  
+	<delete id="deleteMember">
+		delete from LuCK_member where userid=#{userid}
+	</delete>
+	<delete id="deleteAuth">
+		delete from LuCK_member_auth where userid=#{userid}
+	</delete>
+    <delete id="deleteRemember">
+    	delete from persistent_logins where username=#{userid}
+    </delete>
+    
+    <delete id="deleteMemberReply">
+    	delete from LuCK_reply where replyer=#{userid}
+    </delete>
+    
+   <!-- 권한 업데이트 -->
+   <update id="updateAuth">
+   		update LuCK_member_auth set auth=#{auth} where userid=#{userid}	
+   </update> 
+    
+  
+  <!-- date 검색 -->
+  <select id="getBoardDate" resultType="com.luck.domain.BoardDTO">
+    <![CDATA[
+	select bno, title, content, writer, regdate, updatedate, wname
+	from (
+	    select rownum rn, bno, title, content, writer, regdate, updatedate, wname
+	    from (
+	        select bno, title, content, writer, regdate, updatedate, wname
+	        from LuCK_board
+	        where to_char(coalesce(updateDate, regdate), 'yyyy-MM-dd') = #{date}
+	        order by coalesce(updateDate, regdate) desc
+	    )
+	    where rownum <= #{cri.pageNum} * #{cri.amount}
+	)
+	where rn > (#{cri.pageNum} - 1) * #{cri.amount}
+	order by rn
+    ]]>	
+  </select>
+  
+  <select id="getReplyDate" resultType="com.luck.domain.ReplyDTO">
+  	 <![CDATA[
+	SELECT rno, bno, reply, replyer, replydate, updatedate, rname
+	FROM (
+	    SELECT rownum AS rn, rno, bno, reply, replyer, replydate, updatedate, rname
+	    FROM (
+	        SELECT rno, bno, reply, replyer, replydate, updatedate, rname
+	        FROM LuCK_reply
+	        WHERE to_char(coalesce(updateDate, replyDate), 'yyyy-MM-dd') = #{date}
+	        ORDER BY coalesce(updateDate, replyDate) DESC
+	    )
+	    WHERE rownum <= #{cri.pageNum} * #{cri.amount}
+	)
+	WHERE rn > (#{cri.pageNum} - 1) * #{cri.amount}
+	ORDER BY coalesce(updateDate, replyDate) DESC
+  	]]>
+  </select>
+  
+  <select id="getMemberDate" resultMap="memberMap">
+     <![CDATA[
+	SELECT userid, name, regdate, phone, email, auth
+	FROM (
+	    SELECT rownum AS rn, userid, name, regdate, phone, email, auth
+	    FROM (
+	        SELECT mem.userid, mem.name, mem.regdate, mem.phone, mem.email, auth.auth
+	        FROM luck_member mem
+	        LEFT OUTER JOIN luck_member_auth auth ON mem.userid = auth.userid
+	        WHERE auth.auth NOT IN ('ROLE_ADMIN') AND to_char(mem.regdate, 'yyyy-MM-dd') = #{date}
+	        ORDER BY mem.regdate DESC
+	    )
+	    WHERE rownum <= #{cri.pageNum} * #{cri.amount}
+	)
+	WHERE rn > (#{cri.pageNum}-1)*#{cri.amount}
+	ORDER BY regdate DESC
+    ]]>	
+  </select>
+  
+   <select id="boardTCount" resultType="int">
+  	select count(*) from luck_board	where bno > 0
+   </select>
+   <select id="replyTCount" resultType="int">
+  	select count(*) from luck_reply	where rno > 0
+   </select>
+   <select id="memberTCount" resultType="int">
+   	select count(*) from luck_member mem left outer join luck_member_auth auth on mem.userid = auth.userid
+	where auth.auth not in ('ROLE_ADMIN')
+   </select>
+   <select id="boardTCountD" resultType="int">
+  	select count(*) from luck_board	where bno > 0 and to_char(coalesce(updateDate, regdate), 'yyyy-MM-dd') = #{date}
+   </select>
+   <select id="replyTCountD" resultType="int">
+  	select count(*) from luck_reply	where rno > 0 and to_char(coalesce(updateDate, replyDate), 'yyyy-MM-dd') = #{date}
+   </select>
+   <select id="memberTCountD" resultType="int">
+  	select count(*) from luck_member mem left outer join luck_member_auth auth on mem.userid = auth.userid
+  	where auth.auth not in 'ROLE_ADMIN' and to_char(mem.regdate, 'yyyy-MM-dd') = #{date} 
+   </select>
+  
+  
+  
+</mapper>
